@@ -5,15 +5,29 @@ extern crate pretty_env_logger;
 
 use serenity::{
     async_trait,
-    prelude::*
+    prelude::*,
+    framework::StandardFramework,
+    model::guild::Member
 };
-use serenity::framework::StandardFramework;
-use serenity::model::guild::Member;
+use serenity::model::guild::Guild;
+use sqlx::{Pool, Postgres};
 
-struct JoinHandler;
+mod database;
+
+
+struct Handler {
+    db: Pool<Postgres>
+}
 
 #[async_trait]
-impl EventHandler for JoinHandler {
+impl EventHandler for Handler {
+    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: bool) {
+        println!("I joined a new guild!");
+        println!("Guild Name: {}", guild.name);
+        println!("Guild ID: {}", guild.id);
+        println!("Guild New: {}", is_new);
+    }
+
     async fn guild_member_addition(&self, _ctx: Context, new_member: Member) {
         debug!("{} joined!", new_member.user.name);
         println!("{} joined!", new_member.user.name);
@@ -22,7 +36,7 @@ impl EventHandler for JoinHandler {
 
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), anyhow::Error> {
     pretty_env_logger::init();
 
     match dotenvy::dotenv() {
@@ -40,18 +54,25 @@ async fn main() {
             panic!("Failed to get environment variable `DISCORD_TOKEN`: {}", err)
         }
     };
-    let intents = GatewayIntents::non_privileged() | GatewayIntents::GUILD_MEMBERS;
+    let intents = GatewayIntents::all();
 
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("br;"));
 
+    let db = database::create_pool().await?;
+
+    let event_handler = Handler {
+        db: db.clone()
+    };
+
     let mut client = Client::builder(token, intents)
-        .event_handler(JoinHandler)
+        .event_handler(event_handler)
         .framework(framework)
-        .await
-        .expect("Failed to create client.");
+        .await?;
 
     if let Err(err) = client.start().await {
         error!("Error while running client: {}", err)
-    }
+    };
+
+    Ok(())
 }
