@@ -3,40 +3,74 @@ use std::env;
 extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
-use serenity::{
-    async_trait,
-    prelude::*,
-    framework::StandardFramework,
-    model::guild::Member
-};
-use serenity::model::guild::Guild;
-use sqlx::{Pool, Postgres};
+use poise::serenity_prelude as serenity;
+use poise::{Event, Framework, FrameworkContext, FrameworkOptions, PrefixFrameworkOptions};
+use sqlx::PgPool;
 
+mod command;
 mod database;
+mod error;
+mod models;
 
 
-struct Handler {
-    db: Pool<Postgres>
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Context<'a> = poise::Context<'a, Data, Error>;
+pub struct Data {
+    pub db: PgPool
 }
 
-#[async_trait]
-impl EventHandler for Handler {
-    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: bool) {
-        println!("I joined a new guild!");
-        println!("Guild Name: {}", guild.name);
-        println!("Guild ID: {}", guild.id);
-        println!("Guild New: {}", is_new);
-    }
+async fn app() -> Result<(), Error> {
+    let token = match env::var("DISCORD_TOKEN") {
+        Ok(token) => token,
+        Err(err) => {
+            panic!("Failed to get environment variable `DISCORD_TOKEN`: {}", err)
+        }
+    };
 
-    async fn guild_member_addition(&self, _ctx: Context, new_member: Member) {
-        debug!("{} joined!", new_member.user.name);
-        println!("{} joined!", new_member.user.name);
-    }
+    let framework_options = FrameworkOptions {
+        event_handler: |_ctx, _event, _framework, _data| {
+            Box::pin(event_handler(_ctx, _event, _framework, _data))
+        },
+        prefix_options: PrefixFrameworkOptions {
+            prefix: Some("br;".into()),
+            ..Default::default()
+        },
+        commands: vec![
+            command::config()
+        ],
+        ..Default::default()
+    };
+
+    let db = database::create_pool().await?;
+    sqlx::migrate!().run(&db).await?;
+
+    Framework::builder()
+        .token(token)
+        .setup(move |ctx, ready, framework| {
+            Box::pin(async move {
+                info!("Logged in as user: {}", ready.user.name);
+                poise::builtins::register_globally(
+                    ctx,
+                    &framework.options().commands
+                ).await?;
+                Ok(Data {
+                    db
+                })
+            })
+        })
+        .options(framework_options)
+        .intents(
+            // serenity::GatewayIntents::default()
+            //     | serenity::GatewayIntents::GUILD_MEMBERS
+            //     | serenity::GatewayIntents::
+            serenity::GatewayIntents::all()
+        )
+        .run().await?;
+    Ok(())
 }
-
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() {
     pretty_env_logger::init();
 
     match dotenvy::dotenv() {
@@ -48,31 +82,46 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    let token = match env::var("DISCORD_TOKEN") {
-        Ok(token) => token,
-        Err(err) => {
-            panic!("Failed to get environment variable `DISCORD_TOKEN`: {}", err)
+    if let Err(err) = app().await {
+        error!("{}", err);
+        std::process::exit(1);
+    }
+}
+
+
+async fn event_handler(
+    ctx: &serenity::Context,
+    event: &Event<'_>,
+    framework: FrameworkContext<'_, Data, Error>,
+    data: &Data
+) -> Result<(), Error> {
+    match event {
+        Event::GuildCreate { guild, is_new } => {
+            match sqlx::query!(
+                r#"
+                INSERT INTO "triage" (guild_id, enabled)
+                VALUES ($1, $2)
+                "#,
+                *guild.id.as_u64() as i64, false
+            ).execute(&data.db).await {
+                Ok(_) => {
+                    info!("Joined new guild!");
+                    println!("Joined new guild!");
+                },
+                Err(_) => {
+                    info!("Joined guild! Guild already present in database.");
+                    println!("Joined guild! Guild already present in database.");
+                }
+            };
+
+            println!("is thing connected: {}", !data.db.is_closed());
+
+            println!("did thing");
         }
-    };
-    let intents = GatewayIntents::all();
-
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix("br;"));
-
-    let db = database::create_pool().await?;
-
-    let event_handler = Handler {
-        db: db.clone()
-    };
-
-    let mut client = Client::builder(token, intents)
-        .event_handler(event_handler)
-        .framework(framework)
-        .await?;
-
-    if let Err(err) = client.start().await {
-        error!("Error while running client: {}", err)
-    };
-
+        Event::GuildMemberAddition { new_member } => {
+            println!("New member: {}", &new_member.user.name)
+        }
+        _ => {}
+    }
     Ok(())
 }
