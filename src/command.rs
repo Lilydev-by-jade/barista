@@ -54,9 +54,14 @@ pub async fn triage(
             match sqlx::query!(
                 r#"
                 UPDATE "triage"
-                SET enabled = true
-                WHERE guild_id = $1
-                "#, guild_id
+                SET enabled = true,
+                    moderator_channel_id = $1,
+                    member_role_id = $2
+                WHERE guild_id = $3
+                "#,
+                *moderator_channel.unwrap().id.as_u64() as i64,
+                *member_role.unwrap().id.as_u64() as i64,
+                guild_id
             ).execute(&ctx.data().db).await {
                 Ok(_) => {
                     ctx.send(|m| {

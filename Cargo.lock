@@ -128,6 +128,7 @@ name = "barista"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "dotenvy",
  "log",
  "poise",
@@ -136,6 +137,7 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -221,8 +223,10 @@ checksum = "7f2c685bad3eb3d45a01354cedb7d5faa66194d1d58ba6e267a8de788f79db38"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-targets",
 ]
 
@@ -2296,6 +2300,15 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "uuid"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88ad59a7560b41a70d191093a945f0b87bc1deeda46fb237479708a1d6b6cdfc"
+dependencies = [
+ "getrandom",
+]
 
 [[package]]
 name = "vcpkg"
