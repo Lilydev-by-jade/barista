@@ -1,7 +1,7 @@
 # barista
 
 A multipurpose Discord bot, written in [Rust](https://rust-lang.org),
-using [serenity](https://github.com/serenity-rs/serenity).
+using [serenity](https://github.com/serenity-rs/serenity)/[poise](https://github.com/serenity-rs/poise).
 
 Originally written for
 [The UwU Cafe](https://github.com/theuwucafe/)'s Discord server.
