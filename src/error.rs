@@ -14,4 +14,9 @@ pub enum RuntimeError {
 pub enum CommandError {
     #[error("Message error: {0}")]
     MessageNotSent(#[from] poise::serenity_prelude::Error),
+    #[error("Event error: {0}")]
+    Event(#[from] EventError),
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum EventError {}

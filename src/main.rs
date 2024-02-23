@@ -1,11 +1,14 @@
 use std::env;
 
+use error::EventError;
 use log::info;
 use poise::{
     builtins,
-    serenity_prelude::{Client, GatewayIntents},
-    Framework, FrameworkOptions, PrefixFrameworkOptions,
+    serenity_prelude::{self as serenity, futures::TryFutureExt},
+    Framework, FrameworkContext, FrameworkOptions, PrefixFrameworkOptions,
 };
+
+use serenity::{Client, GatewayIntents};
 
 use crate::{
     common::Data,
@@ -16,6 +19,7 @@ use crate::{
 mod common;
 mod database;
 mod error;
+mod models;
 mod module;
 
 async fn app() -> Result<(), RuntimeError> {
@@ -35,9 +39,12 @@ async fn app() -> Result<(), RuntimeError> {
             },
         )
         .options(FrameworkOptions {
-            // event_handler: |_ctx, _event, _framework, _data| {
-            //     Box::pin(event_handler(_ctx, _event, _framework, _data))
-            // },
+            event_handler: |_ctx, _event, _framework, _data| {
+                Box::pin(
+                    event_handler(_ctx, _event, _framework, _data)
+                        .map_err(|e| CommandError::Event(e.into())),
+                )
+            },
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some("br;".into()),
                 ..Default::default()
@@ -72,4 +79,30 @@ async fn main() -> Result<(), RuntimeError> {
     info!("Starting server...");
 
     app().await
+}
+
+async fn event_handler(
+    ctx: &serenity::Context,
+    event: &serenity::FullEvent,
+    framework: FrameworkContext<'_, Data, CommandError>,
+    data: &Data,
+) -> Result<(), EventError> {
+    match event {
+        serenity::FullEvent::GuildCreate { guild, is_new } => {
+            module::triage::handle_guild_create(
+                models::EventInfo {
+                    ctx: ctx.clone(),
+                    event: event.clone(),
+                    framework,
+                    data: data.clone(),
+                },
+                guild,
+                is_new,
+            )
+            .await?;
+        }
+        _ => {}
+    }
+
+    Ok(())
 }

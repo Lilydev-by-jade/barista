@@ -1,0 +1,14 @@
+{
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5390,
+      "driver": "PostgreSQL",
+      "name": "barista dev DB",
+      "database": "barista",
+      "username": "postgres",
+      "password": "DEV_PASS"
+    }
+  ]
+}
