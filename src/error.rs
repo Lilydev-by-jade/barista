@@ -12,16 +12,20 @@ pub enum RuntimeError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandError {
+    #[error("SQL error: {0}")]
+    Sql(#[from] sqlx::Error),
     #[error("Message error: {0}")]
     MessageNotSent(#[from] poise::serenity_prelude::Error),
     #[error("Event error: {0}")]
     Event(#[from] EventError),
+    #[error("Triage error: {0}")]
+    TriageError(#[from] crate::module::triage::TriageError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
     #[error("SQL error: {0}")]
-    SqlError(#[from] sqlx::Error),
+    Sql(#[from] sqlx::Error),
     #[error("Serenity error: {0}")]
     Serenity(#[from] poise::serenity_prelude::Error),
     #[error("Triage error: {0}")]

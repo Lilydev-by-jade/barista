@@ -13,6 +13,7 @@ use serenity::{Client, GatewayIntents};
 use crate::{
     common::Data,
     error::{CommandError, RuntimeError},
+    module::config::config as config_command,
     module::test::test as test_command,
 };
 
@@ -48,7 +49,7 @@ async fn app() -> Result<(), RuntimeError> {
                 prefix: Some("br;".into()),
                 ..Default::default()
             },
-            commands: vec![test_command()],
+            commands: vec![config_command(), test_command()],
             ..Default::default()
         })
         .build();
