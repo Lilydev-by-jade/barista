@@ -19,4 +19,7 @@ pub enum CommandError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum EventError {}
+pub enum EventError {
+    #[error("SQL error: {0}")]
+    SqlError(#[from] sqlx::Error),
+}

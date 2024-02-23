@@ -89,7 +89,7 @@ async fn event_handler(
 ) -> Result<(), EventError> {
     match event {
         serenity::FullEvent::GuildCreate { guild, is_new } => {
-            module::triage::handle_guild_create(
+            module::triage::guild_create::handle_guild_create(
                 models::EventInfo {
                     ctx: ctx.clone(),
                     event: event.clone(),
