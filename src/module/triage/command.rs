@@ -13,11 +13,23 @@ pub async fn triage(
     let guild_id = i64::from(ctx.guild_id().unwrap());
 
     if enabled {
+        if mod_channel.is_none() && access_role.is_none() {
+            return Err(CommandError::TriageError(
+                TriageError::ChannelAndRoleNotSelected(
+                    "Fields `mod_channel` and `access_role` are required to enable triage module"
+                        .to_string(),
+                ),
+            ));
+        }
         if mod_channel.is_none() {
-            return Err(CommandError::TriageError(TriageError::ChannelNotSelected));
+            return Err(CommandError::TriageError(TriageError::ChannelNotSelected(
+                "Field `mod_channel` is required to enable triage module".to_string(),
+            )));
         }
         if access_role.is_none() {
-            return Err(CommandError::TriageError(TriageError::RoleNotSelected));
+            return Err(CommandError::TriageError(TriageError::RoleNotSelected(
+                "Field `access_role` is required to enable triage module".to_string(),
+            )));
         }
 
         sqlx::query!(

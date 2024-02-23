@@ -1,11 +1,13 @@
 use std::env;
 
 use error::EventError;
-use log::info;
+use log::{debug, error, info};
 use poise::{
     builtins,
-    serenity_prelude::{self as serenity, futures::TryFutureExt},
-    Framework, FrameworkContext, FrameworkOptions, PrefixFrameworkOptions,
+    samples::on_error,
+    serenity_prelude::{self as serenity, futures::TryFutureExt, CreateEmbed},
+    CreateReply, Framework, FrameworkContext, FrameworkError, FrameworkOptions,
+    PrefixFrameworkOptions,
 };
 
 use serenity::{Client, GatewayIntents};
@@ -50,6 +52,13 @@ async fn app() -> Result<(), RuntimeError> {
                 ..Default::default()
             },
             commands: vec![config_command(), test_command()],
+            on_error: |er| {
+                Box::pin(async move {
+                    if let Err(e) = handle_error(er).await {
+                        error!("Error while handling error: {}", e);
+                    }
+                })
+            },
             ..Default::default()
         })
         .build();
@@ -120,5 +129,32 @@ async fn event_handler(
         _ => {}
     }
 
+    Ok(())
+}
+
+pub async fn handle_error(
+    error: FrameworkError<'_, Data, CommandError>,
+) -> Result<(), RuntimeError> {
+    match error {
+        FrameworkError::Command { error, ctx, .. } => {
+            ctx.send(
+                CreateReply::default()
+                    .embed(
+                        CreateEmbed::new()
+                            .color(0xff3333)
+                            .title(format!("⁉️ Error running command `{}`", ctx.command().name))
+                            .description(format!("{}", error)),
+                    )
+                    .ephemeral(true),
+            )
+            .await?;
+            debug!("Error running command: {}", error);
+        }
+        error => {
+            if let Err(err) = on_error(error).await {
+                error!("Error in on_error handler: {:?}", err);
+            }
+        }
+    }
     Ok(())
 }
