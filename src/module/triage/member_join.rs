@@ -57,22 +57,22 @@ pub async fn handle_triage_request(
                         CreateEmbed::new()
                             .title("User awaiting approval")
                             .description(format!(
-                                "User: <@{}> `{}#{:?}`\nID: {}",
+                                "**User:** <@{}> `{}`\n**ID:** `{}`\n**Joined at:** <t:{}:f>",
                                 new_member.user.id,
                                 new_member.user.name,
-                                new_member.user.discriminator,
-                                new_member.user.id
+                                new_member.user.id,
+                                new_member.joined_at.unwrap().timestamp()
                             ))
-                            .color(0x00ff00)
+                            .color(0x74c7ec)
                             .footer(CreateEmbedFooter::new(format!(
-                                "User joined at: {}",
+                                "User created at: {}",
                                 new_member.user.created_at().format("%b, %e %Y %r"),
                             ))),
                     )
                     .components(vec![CreateActionRow::Buttons(vec![
                         CreateButton::new(approve_button_id.to_string())
                             .label("Approve")
-                            .style(serenity::ButtonStyle::Primary),
+                            .style(serenity::ButtonStyle::Success),
                         CreateButton::new(kick_button_id.to_string())
                             .label("Kick")
                             .style(serenity::ButtonStyle::Danger),
