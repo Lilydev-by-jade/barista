@@ -41,8 +41,7 @@ async fn app() -> Result<(), RuntimeError> {
         .options(FrameworkOptions {
             event_handler: |_ctx, _event, _framework, _data| {
                 Box::pin(
-                    event_handler(_ctx, _event, _framework, _data)
-                        .map_err(|e| CommandError::Event(e.into())),
+                    event_handler(_ctx, _event, _framework, _data).map_err(CommandError::Event),
                 )
             },
             prefix_options: PrefixFrameworkOptions {
@@ -102,7 +101,7 @@ async fn event_handler(
             .await?;
         }
         serenity::FullEvent::GuildMemberAddition { new_member } => {
-            module::triage::member_join::handle_member_join(
+            module::triage::member_join::handle_triage_request(
                 models::EventInfo {
                     ctx: ctx.clone(),
                     event: event.clone(),
@@ -112,6 +111,10 @@ async fn event_handler(
                 new_member,
             )
             .await?;
+        }
+        serenity::FullEvent::InteractionCreate { interaction: _ } => {
+            // TODO: handle interaction with triage buttons by getting id and type
+            // from button id
         }
         _ => {}
     }

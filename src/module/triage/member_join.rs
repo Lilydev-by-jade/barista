@@ -1,4 +1,3 @@
-use chrono::format;
 use log::info;
 use poise::serenity_prelude::{
     self as serenity, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, CreateMessage,
@@ -9,7 +8,7 @@ use crate::{error::EventError, models::EventInfo, module::triage::models::Triage
 
 use super::TriageError;
 
-pub async fn handle_member_join(
+pub async fn handle_triage_request(
     event_info: EventInfo<'_>,
     new_member: &serenity::model::guild::Member,
 ) -> Result<(), EventError> {
