@@ -1,8 +1,8 @@
 use log::info;
-use poise::serenity_prelude::{
-    self as serenity, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, CreateMessage,
+use poise::serenity_prelude as serenity;
+use serenity::{
+    ChannelId, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, CreateMessage, RoleId,
 };
-use serenity::{ChannelId, RoleId};
 
 use crate::{error::EventError, models::EventInfo, module::triage::models::TriageConfig};
 
@@ -53,9 +53,10 @@ pub async fn handle_triage_request(
             .send_message(
                 &event_info.ctx,
                 CreateMessage::new()
+                    .content("@here")
                     .embed(
                         CreateEmbed::new()
-                            .title("User awaiting approval")
+                            .title("🔔 User awaiting approval!")
                             .description(format!(
                                 "**User:** <@{}> `{}`\n**ID:** `{}`\n**Joined at:** <t:{}:f>",
                                 new_member.user.id,
@@ -64,10 +65,18 @@ pub async fn handle_triage_request(
                                 new_member.joined_at.unwrap().timestamp()
                             ))
                             .color(0x74c7ec)
-                            .footer(CreateEmbedFooter::new(format!(
-                                "User created at: {}",
-                                new_member.user.created_at().format("%b, %e %Y %r"),
-                            ))),
+                            .footer(
+                                CreateEmbedFooter::new(format!(
+                                    "User created at: {}",
+                                    new_member.user.created_at().format("%b, %e %Y %r"),
+                                ))
+                                .icon_url(
+                                    match new_member.user.avatar_url() {
+                                        Some(url) => url,
+                                        None => new_member.user.face(),
+                                    },
+                                ),
+                            ),
                     )
                     .components(vec![CreateActionRow::Buttons(vec![
                         CreateButton::new(approve_button_id.to_string())
