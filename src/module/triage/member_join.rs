@@ -36,7 +36,7 @@ pub async fn handle_triage_request(
                 return Err(EventError::TriageError(TriageError::ChannelNotFound));
             }
         };
-        let access_role = match triage_conf.access_role_id {
+        let _access_role = match triage_conf.access_role_id {
             Some(id) => match RoleId::new(id as u64).to_role_cached(&event_info.ctx.cache) {
                 Some(role) => role,
                 None => {

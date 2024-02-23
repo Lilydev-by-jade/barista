@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo "cargo clippy -- -D warnings"
 cargo clippy -- -D warnings
 
@@ -7,4 +9,4 @@ echo "cargo sqlx prepare"
 cargo sqlx prepare
 
 echo "Adding generated files to git"
-git add .sqlx/\*
+git add .sqlx/*
