@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"triage\" (\"guild_id\", \"enabled\") VALUES ($1, $2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "478fe5059b1ffda907ea5f1c1860d23f575de0effb357a0580ff1025525e78a8"
+}

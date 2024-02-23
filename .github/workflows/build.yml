@@ -4,9 +4,6 @@ on:
   push:
     branches: [main]
 
-env:
-  DATABASE_URL: postgres://postgres:password@localhost:5432/database
-
 jobs:
   build:
     name: Build - ${{ matrix.platform.release_for }}
