@@ -19,15 +19,7 @@ mod error;
 mod module;
 
 async fn app() -> Result<(), RuntimeError> {
-    let token = match env::var("DISCORD_TOKEN") {
-        Ok(token) => token,
-        Err(err) => {
-            panic!(
-                "Failed to get environment variable `DISCORD_TOKEN`: {}",
-                err
-            )
-        }
-    };
+    let token = env::var("DISCORD_TOKEN")?;
 
     let db = database::create_pool().await?;
     sqlx::migrate!().run(&db).await?;
