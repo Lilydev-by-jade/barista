@@ -101,6 +101,18 @@ async fn event_handler(
             )
             .await?;
         }
+        serenity::FullEvent::GuildMemberAddition { new_member } => {
+            module::triage::member_join::handle_member_join(
+                models::EventInfo {
+                    ctx: ctx.clone(),
+                    event: event.clone(),
+                    framework,
+                    data: data.clone(),
+                },
+                new_member,
+            )
+            .await?;
+        }
         _ => {}
     }
 

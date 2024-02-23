@@ -22,4 +22,8 @@ pub enum CommandError {
 pub enum EventError {
     #[error("SQL error: {0}")]
     SqlError(#[from] sqlx::Error),
+    #[error("Serenity error: {0}")]
+    Serenity(#[from] poise::serenity_prelude::Error),
+    #[error("Triage error: {0}")]
+    TriageError(#[from] crate::module::triage::TriageError),
 }
