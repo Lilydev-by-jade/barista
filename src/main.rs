@@ -8,11 +8,13 @@ use poise::{
 };
 
 use crate::{
+    common::Data,
     error::{CommandError, RuntimeError},
     module::test::test as test_command,
 };
 
 mod common;
+mod database;
 mod error;
 mod module;
 
@@ -27,14 +29,19 @@ async fn app() -> Result<(), RuntimeError> {
         }
     };
 
+    let db = database::create_pool().await?;
+    sqlx::migrate!().run(&db).await?;
+
     let framework = Framework::builder()
-        .setup(move |ctx, ready, framework: &Framework<(), CommandError>| {
-            Box::pin(async move {
-                info!("Logged in as {}", ready.user.name);
-                builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(())
-            })
-        })
+        .setup(
+            move |ctx, ready, framework: &Framework<Data, CommandError>| {
+                Box::pin(async move {
+                    info!("Logged in as {}", ready.user.name);
+                    builtins::register_globally(ctx, &framework.options().commands).await?;
+                    Ok(Data { db })
+                })
+            },
+        )
         .options(FrameworkOptions {
             // event_handler: |_ctx, _event, _framework, _data| {
             //     Box::pin(event_handler(_ctx, _event, _framework, _data))

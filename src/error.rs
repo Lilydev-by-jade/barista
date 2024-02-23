@@ -2,6 +2,12 @@
 pub enum RuntimeError {
     #[error("Serenity error: {0}")]
     Serenity(#[from] poise::serenity_prelude::Error),
+    #[error("Database connection failed: {0}")]
+    DatabaseConnectionFailed(#[from] sqlx::Error),
+    #[error("Environment variable error: {0}")]
+    EnvVarNotFound(#[from] std::env::VarError),
+    #[error("Migrations failed: {0}")]
+    MigrationsFailed(#[from] sqlx::migrate::MigrateError),
 }
 
 #[derive(Debug, thiserror::Error)]
