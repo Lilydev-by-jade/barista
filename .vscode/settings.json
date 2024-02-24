@@ -11,5 +11,5 @@
       "password": "DEV_PASS"
     }
   ],
-  "GitHooks.hooksDirectory": "/home/jade/Projects/Other/barista/.git/hooks"
+  "GitHooks.hooksDirectory": "/home/jade/Projects/Other/barista/.git/hooks\n"
 }

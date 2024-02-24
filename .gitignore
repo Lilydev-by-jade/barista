@@ -17,3 +17,5 @@ Cargo.lock
 .env
 
 .idea
+
+docker-compose.dev.yml
