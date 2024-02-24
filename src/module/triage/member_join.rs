@@ -1,7 +1,9 @@
+use chrono::Utc;
 use log::info;
 use poise::serenity_prelude as serenity;
 use serenity::{
-    ChannelId, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, CreateMessage, RoleId,
+    ChannelId, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter,
+    CreateInteractionResponseMessage, CreateMessage, RoleId, UserId,
 };
 
 use crate::{error::EventError, models::EventInfo, module::triage::models::TriageConfig};
@@ -36,13 +38,8 @@ pub async fn handle_triage_request(
                 return Err(EventError::TriageError(TriageError::ChannelNotFound));
             }
         };
-        let _access_role = match triage_conf.access_role_id {
-            Some(id) => match RoleId::new(id as u64).to_role_cached(&event_info.ctx.cache) {
-                Some(role) => role,
-                None => {
-                    return Err(EventError::TriageError(TriageError::RoleNotFound));
-                }
-            },
+        let _access_role_id = match triage_conf.access_role_id {
+            Some(id) => RoleId::new(id as u64),
             None => {
                 return Err(EventError::TriageError(TriageError::RoleNotFound));
             }
@@ -96,6 +93,179 @@ pub async fn handle_triage_request(
             "Triage is enabled for guild with ID: {}",
             new_member.guild_id
         );
+    }
+
+    Ok(())
+}
+
+pub async fn handle_triage_interaction(
+    event_info: EventInfo<'_>,
+    interaction: &serenity::model::application::Interaction,
+) -> Result<(), EventError> {
+    let interaction_custom_id = interaction
+        .as_message_component()
+        .unwrap()
+        .data
+        .custom_id
+        .clone();
+    let guild_id = interaction
+        .as_message_component()
+        .unwrap()
+        .guild_id
+        .unwrap();
+    let user_id = UserId::new(
+        match interaction_custom_id
+            .replace("approve_", "")
+            .replace("kick_", "")
+            .replace("ban_", "")
+            .parse::<u64>()
+        {
+            Ok(id) => id,
+            Err(e) => {
+                return Err(EventError::TriageError(TriageError::UserIdParse(e)));
+            }
+        },
+    );
+    let user = user_id.to_user(&event_info.ctx).await?;
+
+    if interaction_custom_id.starts_with("approve_") {
+        let access_role_id = RoleId::new(
+            sqlx::query!(
+                r#"
+            SELECT "access_role_id" FROM "triage" WHERE "guild_id" = $1
+            "#,
+                i64::from(guild_id)
+            )
+            .fetch_one(&event_info.data.db)
+            .await?
+            .access_role_id
+            .unwrap() as u64,
+        );
+
+        event_info
+            .ctx
+            .http
+            .add_member_role(
+                guild_id,
+                user_id,
+                access_role_id,
+                Some("Approved user from triage."),
+            )
+            .await?;
+
+        interaction
+            .as_message_component()
+            .unwrap()
+            .create_response(
+                event_info.ctx,
+                serenity::CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .content("")
+                        .embed(
+                            CreateEmbed::new()
+                                .title("✅ User approved!")
+                                .color(0x4BB543)
+                                .description(format!(
+                                    "**User:** <@{}> `{}`\n**ID:** `{}`",
+                                    user.id, user.name, user.id
+                                ))
+                                .footer(
+                                    CreateEmbedFooter::new(format!(
+                                        "User approved at: {}",
+                                        Utc::now().format("%b, %e %Y %r")
+                                    ))
+                                    .icon_url(
+                                        match user.avatar_url() {
+                                            Some(url) => url,
+                                            None => user.face(),
+                                        },
+                                    ),
+                                ),
+                        )
+                        .components(vec![]),
+                ),
+            )
+            .await?;
+    } else if interaction_custom_id.starts_with("kick_") {
+        event_info
+            .ctx
+            .http
+            .kick_member(guild_id, user_id, Some("User failed triage (kicked)"))
+            .await?;
+
+        interaction
+            .as_message_component()
+            .unwrap()
+            .create_response(
+                event_info.ctx,
+                serenity::CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .content("")
+                        .embed(
+                            CreateEmbed::new()
+                                .title("❌ User kicked!")
+                                .color(0xff3333)
+                                .description(format!(
+                                    "**User:** <@{}> `{}`\n**ID:** `{}`",
+                                    user.id, user.name, user.id
+                                ))
+                                .footer(
+                                    CreateEmbedFooter::new(format!(
+                                        "User kicked at: {}",
+                                        Utc::now().format("%b, %e %Y %r")
+                                    ))
+                                    .icon_url(
+                                        match user.avatar_url() {
+                                            Some(url) => url,
+                                            None => user.face(),
+                                        },
+                                    ),
+                                ),
+                        )
+                        .components(vec![]),
+                ),
+            )
+            .await?;
+    } else if interaction_custom_id.starts_with("ban_") {
+        event_info
+            .ctx
+            .http
+            .ban_user(guild_id, user_id, 0, Some("User failed triage (banned)"))
+            .await?;
+
+        interaction
+            .as_message_component()
+            .unwrap()
+            .create_response(
+                event_info.ctx,
+                serenity::CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .content("")
+                        .embed(
+                            CreateEmbed::new()
+                                .title("❌ User banned!")
+                                .color(0xff3333)
+                                .description(format!(
+                                    "**User:** <@{}> `{}`\n**ID:** `{}`",
+                                    user.id, user.name, user.id
+                                ))
+                                .footer(
+                                    CreateEmbedFooter::new(format!(
+                                        "User banned at: {}",
+                                        Utc::now().format("%b, %e %Y %r")
+                                    ))
+                                    .icon_url(
+                                        match user.avatar_url() {
+                                            Some(url) => url,
+                                            None => user.face(),
+                                        },
+                                    ),
+                                ),
+                        )
+                        .components(vec![]),
+                ),
+            )
+            .await?;
     }
 
     Ok(())

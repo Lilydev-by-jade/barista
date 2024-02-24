@@ -3,14 +3,11 @@ use std::env;
 use error::EventError;
 use log::{debug, error, info};
 use poise::{
-    builtins,
-    samples::on_error,
-    serenity_prelude::{self as serenity, futures::TryFutureExt, CreateEmbed},
-    CreateReply, Framework, FrameworkContext, FrameworkError, FrameworkOptions,
-    PrefixFrameworkOptions,
+    builtins, samples::on_error, serenity_prelude as serenity, CreateReply, Framework,
+    FrameworkContext, FrameworkError, FrameworkOptions, PrefixFrameworkOptions,
 };
 
-use serenity::{Client, GatewayIntents};
+use serenity::{futures::TryFutureExt, Client, CreateEmbed, GatewayIntents};
 
 use crate::{
     common::Data,
@@ -63,7 +60,7 @@ async fn app() -> Result<(), RuntimeError> {
         })
         .build();
 
-    let client = Client::builder(&token, GatewayIntents::all())
+    let client = Client::builder(&token, GatewayIntents::privileged())
         .framework(framework)
         .await;
 
@@ -122,9 +119,32 @@ async fn event_handler(
             )
             .await?;
         }
-        serenity::FullEvent::InteractionCreate { interaction: _ } => {
-            // TODO: handle interaction with triage buttons by getting id and type
-            // from button id
+        serenity::FullEvent::InteractionCreate { interaction } => {
+            if let Some(interaction_comp) = interaction.as_message_component() {
+                if vec!["approve", "kick", "ban"].into_iter().any(|i| {
+                    interaction_comp
+                        .data
+                        .custom_id
+                        .starts_with(format!("{}_", i).as_str())
+                }) {
+                    module::triage::member_join::handle_triage_interaction(
+                        models::EventInfo {
+                            ctx: ctx.clone(),
+                            event: event.clone(),
+                            framework,
+                            data: data.clone(),
+                        },
+                        interaction,
+                    )
+                    .await?;
+                    debug!("Handling triage interaction!")
+                }
+            }
+
+            debug!(
+                "Interaction ID: {:?}",
+                interaction.as_message_component().unwrap().data.custom_id
+            );
         }
         _ => {}
     }

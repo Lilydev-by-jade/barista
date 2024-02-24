@@ -15,4 +15,6 @@ pub enum TriageError {
     RoleNotSelected(String),
     #[error("{0}")]
     ChannelAndRoleNotSelected(String),
+    #[error("Could not parse user ID: {0}")]
+    UserIdParse(#[from] std::num::ParseIntError),
 }
