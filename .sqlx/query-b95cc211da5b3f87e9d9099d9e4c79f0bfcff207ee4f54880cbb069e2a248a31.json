@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE triage\n                SET enabled = true, access_role_id = $1\n                WHERE guild_id = $2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b95cc211da5b3f87e9d9099d9e4c79f0bfcff207ee4f54880cbb069e2a248a31"
+}

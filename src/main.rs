@@ -140,11 +140,6 @@ async fn event_handler(
                     debug!("Handling triage interaction!")
                 }
             }
-
-            debug!(
-                "Interaction ID: {:?}",
-                interaction.as_message_component().unwrap().data.custom_id
-            );
         }
         _ => {}
     }

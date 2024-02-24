@@ -13,37 +13,101 @@ pub async fn triage(
     let guild_id = i64::from(ctx.guild_id().unwrap());
 
     if enabled {
-        if mod_channel.is_none() && access_role.is_none() {
-            return Err(CommandError::TriageError(
-                TriageError::ChannelAndRoleNotSelected(
-                    "Fields `mod_channel` and `access_role` are required to enable triage module"
-                        .to_string(),
-                ),
-            ));
-        }
-        if mod_channel.is_none() {
-            return Err(CommandError::TriageError(TriageError::ChannelNotSelected(
-                "Field `mod_channel` is required to enable triage module".to_string(),
-            )));
-        }
-        if access_role.is_none() {
-            return Err(CommandError::TriageError(TriageError::RoleNotSelected(
-                "Field `access_role` is required to enable triage module".to_string(),
-            )));
-        }
-
-        sqlx::query!(
+        let is_mod_channel_null = sqlx::query!(
             r#"
-            UPDATE triage
-            SET enabled = true, mod_channel_id = $1, access_role_id = $2
-            WHERE guild_id = $3
+            SELECT mod_channel_id IS NULL AS result
+            FROM triage
+            WHERE guild_id = $1
             "#,
-            i64::from(mod_channel.unwrap().id),
-            i64::from(access_role.unwrap().id),
             guild_id
         )
-        .execute(&ctx.data().db)
-        .await?;
+        .fetch_one(&ctx.data().db)
+        .await?
+        .result
+        .unwrap_or(false);
+
+        let is_access_role_null = sqlx::query!(
+            r#"
+            SELECT access_role_id IS NULL AS result
+            FROM triage
+            WHERE guild_id = $1
+            "#,
+            guild_id
+        )
+        .fetch_one(&ctx.data().db)
+        .await?
+        .result
+        .unwrap_or(false);
+
+        if mod_channel.is_none() && access_role.is_none() {
+            if is_mod_channel_null && is_access_role_null {
+                return Err(CommandError::TriageError(
+                    TriageError::ChannelAndRoleNotSelected(
+                        "Fields `mod_channel` and `access_role` are required to enable triage module"
+                            .to_string(),
+                    ),
+                ));
+            }
+
+            if is_mod_channel_null {
+                return Err(CommandError::TriageError(TriageError::ChannelNotSelected(
+                    "Field `mod_channel` is required to enable triage module".to_string(),
+                )));
+            }
+
+            if is_access_role_null {
+                return Err(CommandError::TriageError(TriageError::RoleNotSelected(
+                    "Field `access_role` is required to enable triage module".to_string(),
+                )));
+            }
+        } else if mod_channel.is_none() {
+            if is_mod_channel_null {
+                return Err(CommandError::TriageError(TriageError::ChannelNotSelected(
+                    "Field `mod_channel` is required to enable triage module".to_string(),
+                )));
+            }
+            sqlx::query!(
+                r#"
+                UPDATE triage
+                SET enabled = true, access_role_id = $1
+                WHERE guild_id = $2
+                "#,
+                i64::from(access_role.unwrap().id),
+                guild_id
+            )
+            .execute(&ctx.data().db)
+            .await?;
+        } else if access_role.is_none() {
+            if is_access_role_null {
+                return Err(CommandError::TriageError(TriageError::RoleNotSelected(
+                    "Field `access_role` is required to enable triage module".to_string(),
+                )));
+            }
+            sqlx::query!(
+                r#"
+                UPDATE triage
+                SET enabled = true, mod_channel_id = $1
+                WHERE guild_id = $2
+                "#,
+                i64::from(mod_channel.unwrap().id),
+                guild_id
+            )
+            .execute(&ctx.data().db)
+            .await?;
+        } else {
+            sqlx::query!(
+                r#"
+                UPDATE triage
+                SET enabled = true, mod_channel_id = $1, access_role_id = $2
+                WHERE guild_id = $3
+                "#,
+                i64::from(mod_channel.unwrap().id),
+                i64::from(access_role.unwrap().id),
+                guild_id
+            )
+            .execute(&ctx.data().db)
+            .await?;
+        }
 
         ctx.reply("☑️ Enabled triage module!").await?;
     } else {
