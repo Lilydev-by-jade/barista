@@ -161,7 +161,7 @@ pub async fn handle_error(
                 CreateReply::default()
                     .embed(
                         CreateEmbed::new()
-                            .color(0xff3333)
+                            .color(0xdd2e44)
                             .title(format!("⁉️ Error running command `{}`", ctx.command().name))
                             .description(format!("{}", error)),
                     )

@@ -204,7 +204,7 @@ pub async fn handle_triage_interaction(
                         .embed(
                             CreateEmbed::new()
                                 .title("❌ User kicked!")
-                                .color(0xff3333)
+                                .color(0xdd2e44)
                                 .description(format!(
                                     "**User:** <@{}> `{}`\n**ID:** `{}`",
                                     user.id, user.name, user.id
@@ -244,7 +244,7 @@ pub async fn handle_triage_interaction(
                         .embed(
                             CreateEmbed::new()
                                 .title("❌ User banned!")
-                                .color(0xff3333)
+                                .color(0xdd2e44)
                                 .description(format!(
                                     "**User:** <@{}> `{}`\n**ID:** `{}`",
                                     user.id, user.name, user.id
