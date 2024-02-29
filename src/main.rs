@@ -188,7 +188,7 @@ pub async fn handle_error(
                                         .embed(
                                             CreateEmbed::new()
                                                 .color(0xdd2e44)
-                                                .title(format!("⁉️ Error in event handler"))
+                                                .title("⁉️ Error in event handler")
                                                 .description(format!("{}", error)),
                                         )
                                         .ephemeral(true),
