@@ -5,7 +5,13 @@ name: Docker
 # separate terms of service, privacy policy, and support
 # documentation.
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Tags for the Docker image, separated by commas. Example: 1.0.0,0.69.420,debian,alpine"
+        required: true
+        type: string
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -65,7 +71,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }},latest,${{ inputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
