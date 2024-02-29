@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "access_role_id",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "remove_role_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -32,6 +37,7 @@
     "nullable": [
       false,
       false,
+      true,
       true,
       true
     ]

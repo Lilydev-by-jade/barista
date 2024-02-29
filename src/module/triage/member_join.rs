@@ -38,12 +38,6 @@ pub async fn handle_triage_request(
                 return Err(EventError::TriageError(TriageError::ChannelNotFound));
             }
         };
-        let _access_role_id = match triage_conf.access_role_id {
-            Some(id) => RoleId::new(id as u64),
-            None => {
-                return Err(EventError::TriageError(TriageError::RoleNotFound));
-            }
-        };
 
         mod_channel
             .id()
@@ -132,8 +126,8 @@ pub async fn handle_triage_interaction(
         let access_role_id = RoleId::new(
             sqlx::query!(
                 r#"
-            SELECT "access_role_id" FROM "triage" WHERE "guild_id" = $1
-            "#,
+                SELECT "access_role_id" FROM "triage" WHERE "guild_id" = $1
+                "#,
                 i64::from(guild_id)
             )
             .fetch_one(&event_info.data.db)
@@ -152,6 +146,45 @@ pub async fn handle_triage_interaction(
                 Some("Approved user from triage."),
             )
             .await?;
+
+        if let Some(remove_role_id) = sqlx::query!(
+            r#"
+            SELECT "remove_role_id"
+            FROM "triage"
+            WHERE "guild_id" = $1
+            "#,
+            i64::from(guild_id)
+        )
+        .fetch_one(&event_info.data.db)
+        .await?
+        .remove_role_id
+        {
+            let role = RoleId::new(remove_role_id as u64);
+
+            if user.has_role(&event_info.ctx, guild_id, role).await? {
+                event_info
+                    .ctx
+                    .http
+                    .remove_member_role(
+                        guild_id,
+                        user_id,
+                        RoleId::new(remove_role_id as u64),
+                        Some("Approved user from triage."),
+                    )
+                    .await?;
+            } else {
+                match role.to_role_cached(&event_info.ctx) {
+                    Some(role) => {
+                        return Err(EventError::TriageError(TriageError::UserRoleNotFound(
+                            format!("{} (id: {})", role.name, role.id),
+                        )));
+                    }
+                    None => {
+                        return Err(EventError::TriageError(TriageError::RoleNotFound));
+                    }
+                };
+            }
+        };
 
         interaction
             .as_message_component()

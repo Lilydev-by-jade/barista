@@ -9,6 +9,8 @@ pub enum TriageError {
     ChannelNotFound,
     #[error("Role not found")]
     RoleNotFound,
+    #[error("User does not have role {0}")]
+    UserRoleNotFound(String),
     #[error("{0}")]
     ChannelNotSelected(String),
     #[error("{0}")]

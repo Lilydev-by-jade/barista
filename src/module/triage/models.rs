@@ -6,4 +6,5 @@ pub struct TriageConfig {
     pub enabled: bool,
     pub mod_channel_id: Option<i64>,
     pub access_role_id: Option<i64>,
+    pub remove_role_id: Option<i64>,
 }

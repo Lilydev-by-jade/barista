@@ -7,7 +7,7 @@ use poise::{
     FrameworkContext, FrameworkError, FrameworkOptions, PrefixFrameworkOptions,
 };
 
-use serenity::{futures::TryFutureExt, Client, CreateEmbed, GatewayIntents};
+use serenity::{futures::TryFutureExt, Client, CreateEmbed, FullEvent, GatewayIntents};
 
 use crate::{
     common::Data,
@@ -165,6 +165,46 @@ pub async fn handle_error(
             .await?;
             debug!("Error running command: {}", error);
         }
+        FrameworkError::EventHandler {
+            error,
+            ctx,
+            event,
+            framework: _framework,
+            ..
+        } => match event {
+            FullEvent::InteractionCreate { interaction } => {
+                if let Some(interaction_comp) = interaction.as_message_component() {
+                    if vec!["approve", "kick", "ban"].into_iter().any(|i| {
+                        interaction_comp
+                            .data
+                            .custom_id
+                            .starts_with(format!("{}_", i).as_str())
+                    }) {
+                        interaction_comp
+                            .create_response(
+                                ctx,
+                                serenity::CreateInteractionResponse::Message(
+                                    serenity::CreateInteractionResponseMessage::default()
+                                        .embed(
+                                            CreateEmbed::new()
+                                                .color(0xdd2e44)
+                                                .title(format!("⁉️ Error in event handler"))
+                                                .description(format!("{}", error)),
+                                        )
+                                        .ephemeral(true),
+                                ),
+                            )
+                            .await?;
+                        debug!("Error in event handler: {}", error);
+                    }
+                } else {
+                    error!("Error in InteractionCreate event: {}", error);
+                }
+            }
+            _ => {
+                error!("Error in event handler: {}", error);
+            }
+        },
         error => {
             if let Err(err) = on_error(error).await {
                 error!("Error in on_error handler: {:?}", err);
